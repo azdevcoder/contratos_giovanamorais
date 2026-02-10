@@ -194,51 +194,57 @@
 
         // Função para carregar contratos do GitHub
         async function loadContracts() {
-            const USER = 'psigiovana';
-            const REPO = 'contratos-assinados';
-            const PATH = 'contratos'; 
-            const url = `https://api.github.com/repos/${USER}/${REPO}/contents/${PATH}`;
-            
-            try {
-                const response = await fetch(url);
+    const USER = 'psigiovana';
+    const REPO = 'contratos-assinados';
+    const PATH = 'contratos'; 
+    const url = `https://api.github.com/repos/${USER}/${REPO}/contents/${PATH}`;
+    
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Erro ao acessar repositório');
 
-                if (!response.ok) throw new Error('Erro ao acessar repositório');
+        const files = await response.json();
+        grid.innerHTML = '';
 
-                const files = await response.json();
-                grid.innerHTML = '';
+        const pdfFiles = files.filter(file => file.name.toLowerCase().endsWith('.pdf'));
 
-                // Filtra apenas arquivos .pdf
-                const pdfFiles = files.filter(file => file.name.toLowerCase().endsWith('.pdf'));
-
-                if (pdfFiles.length === 0) {
-                    grid.innerHTML = '<div class="col-12 text-center py-5 text-muted"><i class="bi bi-folder2-open fs-1 d-block mb-2"></i>Nenhum contrato encontrado no GitHub.</div>';
-                    return;
-                }
-
-                pdfFiles.forEach(file => {
-                    const card = `
-                        <div class="col-6 col-md-4 col-lg-3">
-                            <div class="contract-card shadow-sm">
-                                <div class="text-center">
-                                    <i class="bi bi-file-pdf file-icon"></i>
-                                    <h6 class="text-truncate fw-bold" title="${file.name}">${file.name}</h6>
-                                    <p class="small text-muted mb-3">PDF Assinado</p>
-                                </div>
-                                <div class="d-grid gap-2">
-                                    <a href="${file.download_url}" target="_blank" class="btn btn-primary btn-sm rounded-pill">
-                                        <i class="bi bi-eye"></i> Abrir
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    grid.innerHTML += card;
-                });
-            } catch (error) {
-                console.error(error);
-                grid.innerHTML = '<div class="col-12 text-center py-5 text-danger">Erro ao carregar arquivos do GitHub. Verifique se o repositório é público.</div>';
-            }
+        if (pdfFiles.length === 0) {
+            grid.innerHTML = '<div class="col-12 text-center py-5 text-muted"><i class="bi bi-folder2-open fs-1 d-block mb-2"></i>Nenhum contrato encontrado.</div>';
+            return;
         }
+
+        pdfFiles.forEach(file => {
+            const rawUrl = file.download_url;
+            
+            // Usamos o visualizador do Google para contornar o download automático
+            const viewUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(rawUrl)}&embedded=true`;
+
+            const card = `
+                <div class="col-6 col-md-4 col-lg-3">
+                    <div class="contract-card shadow-sm">
+                        <div class="text-center">
+                            <i class="bi bi-file-pdf file-icon"></i>
+                            <h6 class="text-truncate fw-bold px-2" title="${file.name}">${file.name}</h6>
+                            <p class="small text-muted mb-3">PDF Assinado</p>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <a href="${viewUrl}" target="_blank" class="btn btn-primary btn-sm rounded-pill">
+                                <i class="bi bi-eye-fill me-1"></i> Visualizar
+                            </a>
+                            <a href="${rawUrl}" download="${file.name}" class="btn btn-outline-secondary btn-sm rounded-pill">
+                                <i class="bi bi-download me-1"></i> Baixar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+            grid.innerHTML += card;
+        });
+    } catch (error) {
+        console.error(error);
+        grid.innerHTML = '<div class="col-12 text-center py-5 text-danger">Erro ao carregar arquivos do GitHub.</div>';
+    }
+}
 
         document.addEventListener('DOMContentLoaded', loadContracts);
     </script>
