@@ -14,18 +14,8 @@
     <link rel="apple-touch-icon" href="calendar.png">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log("PWA Ativo:", reg.scope))
-            .catch(err => console.log("Erro PWA:", err));
-        });
-      }
-    </script>
     <style>
         :root {
             --google-blue: #1a73e8;
@@ -51,7 +41,7 @@
 
         body { 
             background-color: var(--bg-main); 
-            color: var(--text-main); /* Aplica a cor da fonte globalmente */
+            color: var(--text-main);
             font-family: 'Roboto', sans-serif; 
             transition: background 0.3s ease, color 0.3s ease;
             height: 100vh;
@@ -60,18 +50,11 @@
             margin: 0;
         }
 
-        /* Força a cor das fontes em elementos específicos do Bootstrap */
         h4, h5, h6, .fw-bold { color: var(--text-main) !important; }
         .text-muted { color: var(--text-muted) !important; }
-        .text-secondary { color: var(--text-muted) !important; }
 
         .app-container { display: flex; flex: 1; overflow: hidden; }
-        .main-content { 
-            flex: 1; 
-            overflow-y: auto; 
-            padding: 20px; 
-            background: var(--bg-main); 
-        }
+        .main-content { flex: 1; overflow-y: auto; padding: 20px; background: var(--bg-main); }
 
         .sidebar {
             width: 260px;
@@ -101,7 +84,6 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            color: var(--text-main);
         }
 
         .contract-card:hover {
@@ -109,21 +91,11 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
 
-        .file-icon {
-            font-size: 2.5rem;
-            color: #d93025;
-            margin-bottom: 10px;
-        }
-
+        .file-icon { font-size: 2.5rem; color: #d93025; margin-bottom: 10px; }
         .theme-toggle { cursor: pointer; padding: 10px; border-radius: 50%; color: var(--text-main); }
-        
-        /* Ajuste dos itens da sidebar para não sumirem no dark mode */
         .list-group-item { color: var(--text-main) !important; }
-        .list-group-item:hover { background-color: rgba(26, 115, 232, 0.1) !important; }
 
-        @media (max-width: 768px) {
-            .sidebar { display: none; }
-        }
+        @media (max-width: 768px) { .sidebar { display: none; } }
 
         .skeleton {
             background: var(--border-color);
@@ -156,9 +128,6 @@
                 <a href="index.html" class="list-group-item list-group-item-action border-0 bg-transparent rounded-3 mb-1">
                     <i class="bi bi-calendar-check me-3"></i>Contrato
                 </a>
-                <!--<a href="pacientes.html" class="list-group-item list-group-item-action border-0 bg-transparent rounded-3 mb-1">
-                    <i class="bi bi-people me-3"></i>Pacientes
-                </a> -->
                 <a href="lista_contratos.html" class="list-group-item list-group-item-action border-0 bg-primary text-white rounded-3 mb-1">
                     <i class="bi bi-file-earmark-text me-3"></i>Lista Contratos
                 </a>
@@ -193,10 +162,7 @@
                 <a href="index.html" class="list-group-item list-group-item-action border-0 bg-transparent py-3">
                     <i class="bi bi-calendar-check me-3 fs-5"></i>Contrato
                 </a>
-                <!-- <a href="pacientes.html" class="list-group-item list-group-item-action border-0 bg-transparent py-3">
-                    <i class="bi bi-people me-3 fs-5"></i>Pacientes
-                </a> -->
-                <a href="lista_contrato.html" class="list-group-item list-group-item-action border-0 bg-transparent py-3">
+                <a href="lista_contratos.html" class="list-group-item list-group-item-action border-0 bg-transparent py-3">
                     <i class="bi bi-file-earmark-text me-3 fs-5"></i>Contratos
                 </a>
                 <a href="enviar_contrato.html" class="list-group-item list-group-item-action border-0 bg-transparent py-3">
@@ -209,75 +175,72 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        async function loadContracts() {
-    // --- CONFIGURAÇÃO DO GITHUB ---
-    const USER = 'psigiovana';
-    const REPO = 'contratos-assinados';
-    const PATH = 'contratos'; // Deixe vazio '' se estiver na raiz
-    const TOKEN = ''; // Opcional: Apenas se o repositório for PRIVADO
-    // ------------------------------
+        const grid = document.getElementById('contractsGrid');
+        const themeBtn = document.getElementById('themeBtn');
+        const themeIcon = document.getElementById('themeIcon');
 
-    // Endpoint correto da API do GitHub para listar arquivos
-    const url = `https://api.github.com/repos/${USER}/${REPO}/contents/${PATH}`;
-    
-    try {
-        const response = await fetch(url);
+        // Tema
+        const savedTheme = localStorage.getItem('theme_nath') || 'light';
+        document.body.setAttribute('data-theme', savedTheme);
+        themeIcon.className = savedTheme === 'light' ? 'bi bi-moon-stars fs-4' : 'bi bi-sun fs-4';
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Erro ao acessar o GitHub');
-        }
-
-        const files = await response.json();
-        grid.innerHTML = '';
-
-        // Filtramos apenas arquivos .pdf (ignorando letras maiúsculas/minúsculas)
-        const pdfFiles = files.filter(file => 
-            file.type === 'file' && file.name.toLowerCase().endsWith('.pdf')
-        );
-
-        if (pdfFiles.length === 0) {
-            grid.innerHTML = `
-                <div class="col-12 text-center py-5 text-muted">
-                    <i class="bi bi-folder2-open fs-1 d-block mb-2"></i>
-                    Nenhum contrato PDF encontrado na pasta "${PATH || 'raiz'}".
-                </div>`;
-            return;
-        }
-
-        pdfFiles.forEach(file => {
-            // file.download_url é o link direto para o arquivo "raw"
-            const card = `
-                <div class="col-6 col-md-4 col-lg-3">
-                    <div class="contract-card shadow-sm">
-                        <div class="text-center">
-                            <i class="bi bi-file-pdf file-icon" style="color: #d93025;"></i>
-                            <h6 class="text-truncate fw-bold" title="${file.name}">${file.name}</h6>
-                            <p class="small text-muted mb-3">GitHub Docs</p>
-                        </div>
-                        <div class="d-grid gap-2">
-                            <a href="${file.download_url}" target="_blank" class="btn btn-primary btn-sm rounded-pill">
-                                <i class="bi bi-eye"></i> Abrir PDF
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            `;
-            grid.innerHTML += card;
+        themeBtn.addEventListener('click', () => {
+            const current = document.body.getAttribute('data-theme');
+            const newTheme = current === 'light' ? 'dark' : 'light';
+            document.body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme_nath', newTheme);
+            themeIcon.className = newTheme === 'light' ? 'bi bi-moon-stars fs-4' : 'bi bi-sun fs-4';
         });
-    } catch (error) {
-        console.error("Erro detalhado:", error);
-        grid.innerHTML = `
-            <div class="col-12 text-center py-5 text-danger">
-                <i class="bi bi-exclamation-triangle fs-1 d-block mb-2"></i>
-                Erro ao carregar: ${error.message}<br>
-                <small class="text-muted">Verifique o nome do usuário, repositório e se a pasta existe.</small>
-            </div>`;
-    }
-}
 
+        // Função para carregar contratos do GitHub
+        async function loadContracts() {
+            const USER = 'psigiovana';
+            const REPO = 'contratos-assinados';
+            const PATH = 'contratos'; 
+            const url = `https://api.github.com/repos/${USER}/${REPO}/contents/${PATH}`;
+            
+            try {
+                const response = await fetch(url);
+
+                if (!response.ok) throw new Error('Erro ao acessar repositório');
+
+                const files = await response.json();
+                grid.innerHTML = '';
+
+                // Filtra apenas arquivos .pdf
+                const pdfFiles = files.filter(file => file.name.toLowerCase().endsWith('.pdf'));
+
+                if (pdfFiles.length === 0) {
+                    grid.innerHTML = '<div class="col-12 text-center py-5 text-muted"><i class="bi bi-folder2-open fs-1 d-block mb-2"></i>Nenhum contrato encontrado no GitHub.</div>';
+                    return;
+                }
+
+                pdfFiles.forEach(file => {
+                    const card = `
+                        <div class="col-6 col-md-4 col-lg-3">
+                            <div class="contract-card shadow-sm">
+                                <div class="text-center">
+                                    <i class="bi bi-file-pdf file-icon"></i>
+                                    <h6 class="text-truncate fw-bold" title="${file.name}">${file.name}</h6>
+                                    <p class="small text-muted mb-3">PDF Assinado</p>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <a href="${file.download_url}" target="_blank" class="btn btn-primary btn-sm rounded-pill">
+                                        <i class="bi bi-eye"></i> Abrir
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    grid.innerHTML += card;
+                });
+            } catch (error) {
+                console.error(error);
+                grid.innerHTML = '<div class="col-12 text-center py-5 text-danger">Erro ao carregar arquivos do GitHub. Verifique se o repositório é público.</div>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadContracts);
     </script>
 </body>
 </html>
-
-
